@@ -120,3 +120,97 @@ function Player:onGainSkillTries(skill, tries)
 	end
 	return tries * configManager.getNumber(configKeys.RATE_SKILL)
 end
+
+local function returnRank(id)
+	local rank = ''
+	if id == 3 then
+		rank = 'a God'
+	else
+		rank = 'a GameMaster'
+	end
+	return rank
+end
+
+function Player:getDescription(lookDistance)
+	local str = {}
+	if lookDistance == -1 then
+		table.insert(str, " yourself.")
+		if self:getGroup():getAccess() then
+			table.insert(str, " You are " .. returnRank(self:getGroup():getId()) .. '.')
+		elseif self:getVocation():getId() ~= VOCATION_NONE then
+			table.insert(str, " You are " .. self:getVocation():getDescription() .. '.')
+		else 
+			table.insert(str, " You have no vocation.")
+		end
+	else
+		table.insert(str, self:getName())
+		if not self:getGroup():getAccess() then
+			table.insert(str, " (Level " .. self:getLevel() .. ')')
+		end
+		table.insert(str, '.')
+
+		if self:getSex() == PLAYERSEX_FEMALE then
+			table.insert(str, " She")
+		else
+			table.insert(str, " He")
+		end
+
+		if self:getGroup():getAccess() then
+			table.insert(str, " is " .. returnRank(self:getGroup():getId()) .. '.')
+		elseif self:getVocation():getId() ~= VOCATION_NONE then
+			table.insert(str, " is " .. self:getVocation():getDescription() .. '.')
+		else 
+			table.insert(str, " has no vocation.")
+		end
+	end
+
+	if self:getParty() then
+		if lookDistance == -1 then
+			table.insert(str, " Your party has ")
+		elseif self:getSex() == PLAYERSEX_FEMALE then
+			table.insert(str, " She is in a party with ")
+		else
+			table.insert(str, " He is in a party with ")
+		end
+
+		if #self:getParty():getMembers() == 0 then
+			table.insert(str, "1 member and ")
+		else
+			table.insert(str, (#self:getParty():getMembers() + 1) .. " members and ")
+		end
+
+		if #self:getParty():getInvitees() == 1 then
+			table.insert(str, "1 pending invitation.")
+		else
+			table.insert(str, #self:getParty():getInvitees() .. " pending invitations.")
+		end
+	end
+	
+	local guild = self:getGuild()
+	if (guild) then
+		local rank = guild:getRankByLevel(self:getGuildLevel());
+		if rank then
+			if lookDistance == -1 then
+				table.insert(str, " You are ")
+			elseif self:getSex() == PLAYERSEX_FEMALE then
+				table.insert(str, " She is ")
+			else
+				table.insert(str, " He is ")
+			end
+
+			table.insert(str, rank.name .. " of the " .. self:getGuild():getName())
+			if self:getGuildNick() then
+				table.insert(str, " (" .. self:getGuildNick() .. ")")
+			end
+
+			local memberCount = #guild:getMembersOnline()
+			if memberCount == 1 then
+				table.insert(str, ", which has 1 member, " .. guild:getMembersOnline() .. " of them online.")
+			else
+				table.insert(str, ", which has " .. memberCount .. " members, " .. guild:getMembersOnline() .. " of them online.")
+			end
+		end
+	end
+	return table.concat(str)
+end
+
